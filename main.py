@@ -36,10 +36,12 @@ tf.app.flags.DEFINE_string('summary', True,
                            """Record summary.""")
 tf.app.flags.DEFINE_string('log', 'ERROR',
                            'The threshold for what messages will be logged '
-                            """DEBUG, INFO, WARN, ERROR, or FATAL.""")
+                           """DEBUG, INFO, WARN, ERROR, or FATAL.""")
 
 FLAGS.checkpoint_dir = './results/' + FLAGS.save
 FLAGS.log_dir = FLAGS.checkpoint_dir + '/log/'
+
+
 # tf.logging.set_verbosity(FLAGS.log)
 
 def count_params(var_list):
@@ -51,7 +53,6 @@ def count_params(var_list):
 
 
 def add_summaries(scalar_list=[], activation_list=[], var_list=[], grad_list=[]):
-
     for var in scalar_list:
         if var is not None:
             tf.summary.scalar(var.op.name, var)
@@ -71,18 +72,20 @@ def add_summaries(scalar_list=[], activation_list=[], var_list=[], grad_list=[])
         if activation is not None:
             tf.summary.histogram(activation.op.name +
                                  '/activations', activation)
-            #tf.summary.scalar(activation.op.name + '/sparsity', tf.nn.zero_fraction(activation))
+            # tf.summary.scalar(activation.op.name + '/sparsity', tf.nn.zero_fraction(activation))
 
 
 def _learning_rate_decay_fn(learning_rate, global_step):
-  return tf.train.exponential_decay(
-      learning_rate,
-      global_step,
-      decay_steps=1000,
-      decay_rate=0.9,
-      staircase=True)
+    return tf.train.exponential_decay(
+        learning_rate,
+        global_step,
+        decay_steps=1000,
+        decay_rate=0.9,
+        staircase=True)
+
 
 learning_rate_decay_fn = _learning_rate_decay_fn
+
 
 def train(model, data,
           batch_size=128,
@@ -90,19 +93,18 @@ def train(model, data,
           log_dir='./log',
           checkpoint_dir='./checkpoint',
           num_epochs=-1):
-
     # tf Graph input
     with tf.device('/cpu:0'):
         with tf.name_scope('data'):
             x, yt = data.generate_batches(batch_size)
 
-        global_step =  tf.get_variable('global_step', shape=[], dtype=tf.int64,
-                             initializer=tf.constant_initializer(0),
-                             trainable=False)
+        global_step = tf.get_variable('global_step', shape=[], dtype=tf.int64,
+                                      initializer=tf.constant_initializer(0),
+                                      trainable=False)
     if FLAGS.gpu:
-        device_str='/gpu:' + str(FLAGS.device)
+        device_str = '/gpu:' + str(FLAGS.device)
     else:
-        device_str='/cpu:0'
+        device_str = '/cpu:0'
     with tf.device(device_str):
         y = model(x, is_training=True)
         # Define loss and optimizer
@@ -113,10 +115,11 @@ def train(model, data,
                 tf.cast(tf.nn.in_top_k(y, yt, 1), tf.float32))
         opt = tf.contrib.layers.optimize_loss(loss, global_step, learning_rate, 'Adam',
                                               gradient_noise_scale=None, gradient_multipliers=None,
-                                              clip_gradients=None, #moving_average_decay=0.9,
-                                              learning_rate_decay_fn=learning_rate_decay_fn, update_ops=None, variables=None, name=None)
-        #grads = opt.compute_gradients(loss)
-        #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+                                              clip_gradients=None,  # moving_average_decay=0.9,
+                                              learning_rate_decay_fn=learning_rate_decay_fn, update_ops=None,
+                                              variables=None, name=None)
+        # grads = opt.compute_gradients(loss)
+        # apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
     # loss_avg
 
@@ -138,10 +141,10 @@ def train(model, data,
         train_op = tf.group(*updates_collection)
 
     if FLAGS.summary:
-        add_summaries( scalar_list=[accuracy, accuracy_avg, loss, loss_avg],
-            activation_list=tf.get_collection(tf.GraphKeys.ACTIVATIONS),
-            var_list=tf.trainable_variables())
-            # grad_list=grads)
+        add_summaries(scalar_list=[accuracy, accuracy_avg, loss, loss_avg],
+                      activation_list=tf.get_collection(tf.GraphKeys.ACTIVATIONS),
+                      var_list=tf.trainable_variables())
+        # grad_list=grads)
 
     summary_op = tf.summary.merge_all()
 
@@ -172,7 +175,7 @@ def train(model, data,
         curr_step = 0
         # Initializing the variables
 
-        #with tf.Session() as session:
+        # with tf.Session() as session:
         #    print(session.run(ww))
 
         print('Started epoch %d' % epoch)
@@ -186,7 +189,7 @@ def train(model, data,
         step, acc_value, loss_value, summary = sess.run(
             [global_step, accuracy_avg, loss_avg, summary_op])
         saver.save(sess, save_path=checkpoint_dir +
-                   '/model.ckpt', global_step=global_step)
+                                   '/model.ckpt', global_step=global_step)
         bar.finish()
         print('Finished epoch %d' % epoch)
         print('Training Accuracy: %.3f' % acc_value)
